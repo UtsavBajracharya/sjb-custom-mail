@@ -161,7 +161,7 @@ add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_
     if (!empty($resume_url)) {
         $custom_message .= '<p><strong>Resume:</strong> <a href="' . esc_url($resume_url) . '" target="_blank">Download Resume</a></p>';
     }
-    $custom_message .= '<p>Please log in to WordPress and review the applicant details and resume.</p>';
+    $custom_message .= '<p>Please log in to WordPress to review the applicant's full details.</p>';
     $custom_message .= '<p>Regards,<br>' . esc_html(get_bloginfo('name')) . '</p>';
 
     return $custom_message;
