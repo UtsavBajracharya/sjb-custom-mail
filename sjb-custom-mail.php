@@ -143,9 +143,24 @@ add_filter('wp_mail_from_name', function ($from_name) {
 add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_receiver) {
     $job_title = get_the_title($post_id);
 
+    // Get the resume attachment
+    $resume_url = '';
+    $attachments = get_posts(array(
+        'post_type' => 'attachment',
+        'post_parent' => $post_id,
+        'numberposts' => 1,
+        'post_status' => 'inherit'
+    ));
+    if (!empty($attachments)) {
+        $resume_url = wp_get_attachment_url($attachments[0]->ID);
+    }
+
     $custom_message  = '<p>Hello HR,</p>';
     $custom_message .= '<p>A new application has been submitted on your website.</p>';
     $custom_message .= '<p><strong>Job Title:</strong> ' . esc_html($job_title) . '</p>';
+    if (!empty($resume_url)) {
+        $custom_message .= '<p><strong>Resume:</strong> <a href="' . esc_url($resume_url) . '" target="_blank">Download Resume</a></p>';
+    }
     $custom_message .= '<p>Please log in to WordPress and review the applicant details and resume.</p>';
     $custom_message .= '<p>Regards,<br>' . esc_html(get_bloginfo('name')) . '</p>';
 
