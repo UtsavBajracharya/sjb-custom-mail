@@ -82,6 +82,26 @@ add_filter('sjb_hr_notification_sbj', function ($subject, $job_title, $post_id) 
 }, 10, 3);
 
 
+add_filter('sjb_hr_notification_attachment', function ($attachment, $post_id) {
+    $attachments = get_posts([
+        'post_type'   => 'attachment',
+        'post_parent' => $post_id,
+        'numberposts' => 1,
+        'post_status' => 'inherit'
+    ]);
+
+    if (!empty($attachments)) {
+        $resume_path = get_attached_file($attachments[0]->ID);
+
+        if (!empty($resume_path) && file_exists($resume_path)) {
+            return [$resume_path];
+        }
+    }
+
+    return $attachment;
+}, 10, 2);
+
+
 
 /**
  * Helper function to generate HTML email header
