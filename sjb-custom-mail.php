@@ -205,31 +205,6 @@ add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_
 }, 10, 3);
 
 /**
- * Attach resume file to HR notification email
- * Hooks into wp_mail to add the resume as an attachment
- */
-add_filter('wp_mail', function ($args) {
-    $resume_path = get_option('sjb_current_resume_path', '');
-    
-    if (!empty($resume_path) && file_exists($resume_path)) {
-        // Initialize attachments array if not exists
-        if (!isset($args['attachments'])) {
-            $args['attachments'] = array();
-        }
-        
-        // Add resume file as attachment
-        if (!in_array($resume_path, $args['attachments'])) {
-            $args['attachments'][] = $resume_path;
-        }
-        
-        // Clear the temporary option
-        delete_option('sjb_current_resume_path');
-    }
-    
-    return $args;
-});
-
-/**
  * Customize the applicant confirmation email
  * SJB exposes sjb_app_email_template for applicant emails.
  */
