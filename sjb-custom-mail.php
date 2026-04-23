@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SJB Custom Mail
  * Description: Custom email override and settings for Simple Job Board.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: Utsav
  */
 
@@ -178,8 +178,6 @@ add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_
         $resume_file_name = basename($resume_path);
     }
 
-    // Store resume path for email attachment hook
-    update_option('sjb_current_resume_path', $resume_path);
 
     $custom_message  = sjb_get_email_header();
     $custom_message .= '<h2>New Job Application Received</h2>';
