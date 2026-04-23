@@ -19,18 +19,6 @@ add_action('admin_init', function () {
         'sanitize_callback' => 'sanitize_email',
         'default' => '',
     ]);
-
-    register_setting('sjb_custom_mail_group', 'sjb_custom_from_name', [
-        'type' => 'string',
-        'sanitize_callback' => 'sanitize_text_field',
-        'default' => get_bloginfo('name'),
-    ]);
-
-    register_setting('sjb_custom_mail_group', 'sjb_custom_from_email', [
-        'type' => 'string',
-        'sanitize_callback' => 'sanitize_email',
-        'default' => get_option('admin_email'),
-    ]);
 });
 
 /**
@@ -56,31 +44,12 @@ function sjb_custom_mail_settings_page() {
 
             <table class="form-table">
                 <tr>
-                    <th scope="row"><label for="sjb_custom_hr_email">HR Gmail</label></th>
+                    <th scope="row"><label for="sjb_custom_hr_email">HR Email</label></th>
                     <td>
                         <input type="email" name="sjb_custom_hr_email" id="sjb_custom_hr_email"
                                value="<?php echo esc_attr(get_option('sjb_custom_hr_email', '')); ?>"
                                class="regular-text" />
-                        <p class="description">This will override the HR email used by Simple Job Board.</p>
-                    </td>
-                </tr>
-
-                <tr>
-                    <th scope="row"><label for="sjb_custom_from_name">From Name</label></th>
-                    <td>
-                        <input type="text" name="sjb_custom_from_name" id="sjb_custom_from_name"
-                               value="<?php echo esc_attr(get_option('sjb_custom_from_name', get_bloginfo('name'))); ?>"
-                               class="regular-text" />
-                    </td>
-                </tr>
-
-                <tr>
-                    <th scope="row"><label for="sjb_custom_from_email">From Email</label></th>
-                    <td>
-                        <input type="email" name="sjb_custom_from_email" id="sjb_custom_from_email"
-                               value="<?php echo esc_attr(get_option('sjb_custom_from_email', get_option('admin_email'))); ?>"
-                               class="regular-text" />
-                        <p class="description">Use a domain-based email like careers@yourdomain.com when possible.</p>
+                        <p class="description">Email address where job application notifications will be sent.</p>
                     </td>
                 </tr>
             </table>
@@ -112,29 +81,7 @@ add_filter('sjb_hr_notification_sbj', function ($subject, $job_title, $post_id) 
     return sprintf('New job application received for %s', $job_title);
 }, 10, 3);
 
-/**
- * Set the From email and name globally for wp_mail
- * Only do this if you want to override the site default sender.
- */
-add_filter('wp_mail_from', function ($from_email) {
-    $custom_from_email = get_option('sjb_custom_from_email', '');
 
-    if (!empty($custom_from_email) && is_email($custom_from_email)) {
-        return $custom_from_email;
-    }
-
-    return $from_email;
-});
-
-add_filter('wp_mail_from_name', function ($from_name) {
-    $custom_from_name = get_option('sjb_custom_from_name', '');
-
-    if (!empty($custom_from_name)) {
-        return $custom_from_name;
-    }
-
-    return $from_name;
-});
 
 /**
  * Helper function to generate HTML email header
@@ -209,8 +156,16 @@ add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_
     $job_title = get_the_title($post_id);
     $site_url = get_home_url();
 
+    // Get applicant name from post meta
+    $applicant_name = get_post_meta($post_id, 'applicant_name', true);
+    if (empty($applicant_name)) {
+        $applicant_name = 'N/A';
+    }
+
     // Get the resume attachment
     $resume_url = '';
+    $resume_path = '';
+    $resume_file_name = '';
     $attachments = get_posts(array(
         'post_type' => 'attachment',
         'post_parent' => $post_id,
@@ -219,26 +174,60 @@ add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_
     ));
     if (!empty($attachments)) {
         $resume_url = wp_get_attachment_url($attachments[0]->ID);
+        $resume_path = get_attached_file($attachments[0]->ID);
+        $resume_file_name = basename($resume_path);
     }
+
+    // Store resume path for email attachment hook
+    update_option('sjb_current_resume_path', $resume_path);
 
     $custom_message  = sjb_get_email_header();
     $custom_message .= '<h2>New Job Application Received</h2>';
     $custom_message .= '<p>A new application has been submitted on your website.</p>';
     $custom_message .= '<div class="job-details">';
+    $custom_message .= '<p><strong>Applicant Name:</strong> ' . esc_html($applicant_name) . '</p>';
     $custom_message .= '<p><strong>Job Title:</strong> ' . esc_html($job_title) . '</p>';
     $custom_message .= '<p><strong>Application Date:</strong> ' . date('F j, Y \a\t g:i A') . '</p>';
     if (!empty($resume_url)) {
-        $custom_message .= '<p><strong>Resume:</strong> <a href="' . esc_url($resume_url) . '" target="_blank">Download Resume</a></p>';
+        $custom_message .= '<p><strong>Resume:</strong> <a href="' . esc_url($resume_url) . '" target="_blank" style="color: #667eea; font-weight: bold;">📥 Download Resume</a></p>';
+        $custom_message .= '<p style="font-size: 12px; color: #666; margin-top: 5px;"><em>Resume is also attached to this email.</em></p>';
+    } else {
+        $custom_message .= '<p><strong>Resume:</strong> <em>No resume attached</em></p>';
     }
     $custom_message .= '</div>';
     $custom_message .= '<h2>Next Steps</h2>';
     $custom_message .= '<p>Log in to WordPress to review the applicant\'s complete details:</p>';
-    $custom_message .= '<p><a href="' . esc_url(admin_url()) . '" class="cta-button">Review Application</a></p>';
+    $custom_message .= '<p><a href="' . esc_url(admin_url('post.php?post=' . intval($post_id) . '&action=edit')) . '" class="cta-button">Review Full Application</a></p>';
     $custom_message .= '<p>You can view all applications and manage the hiring process from your WordPress dashboard.</p>';
     $custom_message .= sjb_get_email_footer();
 
     return $custom_message;
 }, 10, 3);
+
+/**
+ * Attach resume file to HR notification email
+ * Hooks into wp_mail to add the resume as an attachment
+ */
+add_filter('wp_mail', function ($args) {
+    $resume_path = get_option('sjb_current_resume_path', '');
+    
+    if (!empty($resume_path) && file_exists($resume_path)) {
+        // Initialize attachments array if not exists
+        if (!isset($args['attachments'])) {
+            $args['attachments'] = array();
+        }
+        
+        // Add resume file as attachment
+        if (!in_array($resume_path, $args['attachments'])) {
+            $args['attachments'][] = $resume_path;
+        }
+        
+        // Clear the temporary option
+        delete_option('sjb_current_resume_path');
+    }
+    
+    return $args;
+});
 
 /**
  * Customize the applicant confirmation email
@@ -265,7 +254,10 @@ add_filter('sjb_app_email_template', function ($message, $post_id, $app_id) {
     $custom_message .= '<p>In the meantime, you can explore other job openings on our careers portal:</p>';
     $custom_message .= '<p><a href="' . esc_url($site_url) . '/careers" class="cta-button">View More Jobs</a></p>';
     $custom_message .= '<h2>Questions?</h2>';
-    $custom_message .= '<p>If you have any questions about your application, feel free to reach out to our HR team at <a href="mailto:' . esc_attr(get_option('sjb_custom_hr_email', get_option('admin_email'))) . '">' . esc_html(get_option('sjb_custom_hr_email', get_option('admin_email'))) . '</a>.</p>';
+    $hr_email = get_option('sjb_custom_hr_email', '');
+    if (!empty($hr_email)) {
+        $custom_message .= '<p>If you have any questions about your application, feel free to reach out to our HR team at <a href="mailto:' . esc_attr($hr_email) . '">' . esc_html($hr_email) . '</a>.</p>';
+    }
     $custom_message .= sjb_get_email_footer();
 
     return $custom_message;
