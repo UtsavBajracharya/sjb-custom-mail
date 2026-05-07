@@ -291,18 +291,8 @@ add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_
     $applicant_email = !empty($applicant_email) ? $applicant_email : 'N/A';
     $applicant_phone = !empty($applicant_phone) ? $applicant_phone : 'N/A';
 
-    $resume_url = '';
-
-    $attachments = get_posts([
-        'post_type'   => 'attachment',
-        'post_parent' => $post_id,
-        'numberposts' => 1,
-        'post_status' => 'inherit',
-    ]);
-
-    if (!empty($attachments)) {
-        $resume_url = wp_get_attachment_url($attachments[0]->ID);
-    }
+    $resume = sjb_custom_get_resume_data($post_id);
+    $resume_url = $resume['url'];
 
     $custom_message  = sjb_get_email_header();
     $custom_message .= '<h2>New Job Application Received</h2>';
