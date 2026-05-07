@@ -305,10 +305,9 @@ add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_
     $custom_message .= '<p><strong>Job Title:</strong> ' . esc_html($job_title) . '</p>';
     $custom_message .= '<p><strong>Submitted On:</strong> ' . esc_html(current_time('F j, Y \a\t g:i A')) . '</p>';
 
-    $download_url = sjb_generate_resume_download_url($post_id);
 
     if (!empty($resume['path'])) {
-        $custom_message .= '<p><strong>Resume:</strong> <a href="' . esc_url($download_url) . '" target="_blank">Download Resume</a></p>';
+        $custom_message .= '<p><strong>Resume:</strong> Attached with this email.</p>';
     } else {
         $custom_message .= '<p><strong>Resume:</strong> Not available</p>';
     }
@@ -324,53 +323,6 @@ add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_
     return $custom_message;
 }, 999, 3);
 
-
-/**
- * Generate secure resume download URL
- */
-function sjb_generate_resume_download_url($post_id) {
-    return add_query_arg([
-        'sjb_download_resume' => $post_id,
-        'token' => wp_create_nonce('sjb_resume_' . $post_id)
-    ], home_url('/'));
-}
-
-
-/**
- * Handle secure resume download
- */
-add_action('init', function () {
-
-    if (
-        !isset($_GET['sjb_download_resume']) ||
-        !isset($_GET['token'])
-    ) {
-        return;
-    }
-
-    $post_id = intval($_GET['sjb_download_resume']);
-    $token   = sanitize_text_field($_GET['token']);
-
-    // Verify token
-    if (!wp_verify_nonce($token, 'sjb_resume_' . $post_id)) {
-        wp_die('Invalid or expired resume link.');
-    }
-
-    // Get resume path
-    $resume_path = get_post_meta($post_id, 'resume_path', true);
-
-    if (empty($resume_path) || !file_exists($resume_path)) {
-        wp_die('Resume file not found.');
-    }
-
-    // Force file download
-    header('Content-Description: File Transfer');
-    header('Content-Type: application/pdf');
-    header('Content-Disposition: attachment; filename="' . basename($resume_path) . '"');
-    header('Content-Length: ' . filesize($resume_path));
-    readfile($resume_path);
-    exit;
-});
 
 
 /**
