@@ -305,9 +305,8 @@ add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_
     $custom_message .= '<p><strong>Job Title:</strong> ' . esc_html($job_title) . '</p>';
     $custom_message .= '<p><strong>Submitted On:</strong> ' . esc_html(current_time('F j, Y \a\t g:i A')) . '</p>';
 
-    if (!empty($resume_url)) {
-        $custom_message .= '<p><strong>Resume:</strong> <a href="' . esc_url($resume_url) . '" target="_blank">Download Resume</a></p>';
-        $custom_message .= '<p><em>The resume is also attached to this email.</em></p>';
+    if (!empty($resume['path'])) {
+    $custom_message .= '<p><strong>Resume:</strong> Attached with this email.</p>';
     } else {
         $custom_message .= '<p><strong>Resume:</strong> Not available</p>';
     }
