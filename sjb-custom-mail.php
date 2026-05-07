@@ -103,26 +103,37 @@ add_filter('sjb_applicant_notification_sbj', function ($subject, $job_title, $po
 }, 999, 3);
 
 /**
- * Attach resume only to HR email
+ * Attach applicant resume only to HR notification email.
  */
 add_filter('sjb_hr_notification_attachment', function ($attachment, $post_id) {
-    $attachments = get_posts([
-        'post_type'   => 'attachment',
-        'post_parent' => $post_id,
-        'numberposts' => 1,
-        'post_status' => 'inherit',
-    ]);
+    $resume = sjb_custom_get_resume_data($post_id);
 
-    if (!empty($attachments)) {
-        $resume_path = get_attached_file($attachments[0]->ID);
-
-        if (!empty($resume_path) && file_exists($resume_path)) {
-            return [$resume_path];
-        }
+    if (!empty($resume['path']) && file_exists($resume['path'])) {
+        return [$resume['path']];
     }
 
     return $attachment;
 }, 999, 2);
+
+/**
+ * Get applicant resume URL and file path from Simple Job Board application meta.
+ */
+function sjb_custom_get_resume_data($post_id) {
+    $resume_url  = get_post_meta($post_id, 'resume', true);
+    $resume_path = get_post_meta($post_id, 'resume_path', true);
+
+    if (!empty($resume_url) && $resume_url !== 'Resume[deleted]' && $resume_url !== '/') {
+        return [
+            'url'  => esc_url($resume_url),
+            'path' => $resume_path,
+        ];
+    }
+
+    return [
+        'url'  => '',
+        'path' => '',
+    ];
+}
 
 /**
  * Email header
