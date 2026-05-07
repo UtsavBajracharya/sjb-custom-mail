@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name: SJB Custom Mail
- * Description: Custom email override and settings for Simple Job Board.
- * Version: 1.0.1
+ * Description: Custom HR and applicant email templates for Simple Job Board.
+ * Version: 1.1.1
  * Author: Utsav
  */
 
@@ -11,18 +11,18 @@ if (!defined('ABSPATH')) {
 }
 
 /**
- * Register custom setting
+ * Register custom HR email setting
  */
 add_action('admin_init', function () {
     register_setting('sjb_custom_mail_group', 'sjb_custom_hr_email', [
-        'type' => 'string',
+        'type'              => 'string',
         'sanitize_callback' => 'sanitize_email',
-        'default' => '',
+        'default'           => '',
     ]);
 });
 
 /**
- * Add admin settings page
+ * Add settings page
  */
 add_action('admin_menu', function () {
     add_options_page(
@@ -38,18 +38,25 @@ function sjb_custom_mail_settings_page() {
     ?>
     <div class="wrap">
         <h1>SJB Custom Mail Settings</h1>
+
         <form method="post" action="options.php">
             <?php settings_fields('sjb_custom_mail_group'); ?>
             <?php do_settings_sections('sjb_custom_mail_group'); ?>
 
             <table class="form-table">
                 <tr>
-                    <th scope="row"><label for="sjb_custom_hr_email">HR Email</label></th>
+                    <th scope="row">
+                        <label for="sjb_custom_hr_email">HR Email</label>
+                    </th>
                     <td>
-                        <input type="email" name="sjb_custom_hr_email" id="sjb_custom_hr_email"
+                        <input type="email"
+                               name="sjb_custom_hr_email"
+                               id="sjb_custom_hr_email"
                                value="<?php echo esc_attr(get_option('sjb_custom_hr_email', '')); ?>"
                                class="regular-text" />
-                        <p class="description">Email address where job application notifications will be sent.</p>
+                        <p class="description">
+                            Job application notifications will be sent to this email.
+                        </p>
                     </td>
                 </tr>
             </table>
@@ -61,8 +68,14 @@ function sjb_custom_mail_settings_page() {
 }
 
 /**
- * Override the HR recipient for Simple Job Board
- * SJB uses the sjb_hr_notification_to filter.
+ * Force all SJB emails to use HTML format
+ */
+add_filter('wp_mail_content_type', function () {
+    return 'text/html';
+});
+
+/**
+ * Override HR recipient
  */
 add_filter('sjb_hr_notification_to', function ($to, $post_id) {
     $custom_hr_email = get_option('sjb_custom_hr_email', '');
@@ -72,22 +85,32 @@ add_filter('sjb_hr_notification_to', function ($to, $post_id) {
     }
 
     return $to;
-}, 10, 2);
+}, 999, 2);
 
 /**
- * Customize the HR email subject
+ * HR email subject
  */
 add_filter('sjb_hr_notification_sbj', function ($subject, $job_title, $post_id) {
-    return sprintf('New job application received for %s', $job_title);
-}, 10, 3);
+    return sprintf('New Job Application Received for %s', html_entity_decode($job_title));
+}, 999, 3);
 
+/**
+ * Applicant email subject
+ * Correct hook for Simple Job Board 2.14.2
+ */
+add_filter('sjb_applicant_notification_sbj', function ($subject, $job_title, $post_id) {
+    return sprintf('Application Received for %s', html_entity_decode($job_title));
+}, 999, 3);
 
+/**
+ * Attach resume only to HR email
+ */
 add_filter('sjb_hr_notification_attachment', function ($attachment, $post_id) {
     $attachments = get_posts([
         'post_type'   => 'attachment',
         'post_parent' => $post_id,
         'numberposts' => 1,
-        'post_status' => 'inherit'
+        'post_status' => 'inherit',
     ]);
 
     if (!empty($attachments)) {
@@ -99,16 +122,13 @@ add_filter('sjb_hr_notification_attachment', function ($attachment, $post_id) {
     }
 
     return $attachment;
-}, 10, 2);
-
-
+}, 999, 2);
 
 /**
- * Helper function to generate HTML email header
+ * Email header
  */
 function sjb_get_email_header() {
     $site_name = get_bloginfo('name');
-    $site_url = get_home_url();
 
     return '
     <!DOCTYPE html>
@@ -117,19 +137,92 @@ function sjb_get_email_header() {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style type="text/css">
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .email-container { max-width: 600px; margin: 0 auto; background-color: #f9f9f9; }
-            .email-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
-            .email-header h1 { margin: 0; font-size: 24px; }
-            .email-body { background-color: white; padding: 30px; }
-            .email-body p { margin: 15px 0; }
-            .email-body h2 { color: #667eea; margin-top: 20px; margin-bottom: 10px; }
-            .job-details { background-color: #f5f5f5; padding: 15px; border-left: 4px solid #667eea; margin: 20px 0; }
-            .job-details strong { color: #667eea; }
-            .cta-button { display: inline-block; background-color: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 15px 0; }
-            .cta-button:hover { background-color: #764ba2; }
-            .email-footer { background-color: #f9f9f9; padding: 20px; text-align: center; font-size: 12px; color: #666; border-top: 1px solid #ddd; }
-            .email-footer a { color: #667eea; text-decoration: none; }
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333333;
+                margin: 0;
+                padding: 0;
+                background-color: #f4f4f4;
+            }
+
+            .email-container {
+                max-width: 620px;
+                margin: 0 auto;
+                background-color: #ffffff;
+                border: 1px solid #e5e5e5;
+            }
+
+            .email-header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: #ffffff;
+                padding: 30px;
+                text-align: center;
+            }
+
+            .email-header h1 {
+                margin: 0;
+                font-size: 24px;
+                color: #ffffff;
+            }
+
+            .email-header p {
+                margin: 8px 0 0;
+                color: #ffffff;
+            }
+
+            .email-body {
+                background-color: #ffffff;
+                padding: 30px;
+            }
+
+            .email-body h2 {
+                color: #667eea;
+                margin-top: 20px;
+                margin-bottom: 10px;
+                font-size: 20px;
+            }
+
+            .email-body p {
+                margin: 14px 0;
+                font-size: 15px;
+            }
+
+            .job-details {
+                background-color: #f8f9fa;
+                padding: 16px;
+                border-left: 4px solid #667eea;
+                margin: 20px 0;
+            }
+
+            .job-details strong {
+                color: #333333;
+            }
+
+            .cta-button {
+                display: inline-block;
+                background-color: #667eea;
+                color: #ffffff !important;
+                padding: 12px 24px;
+                text-decoration: none;
+                border-radius: 5px;
+                margin: 15px 0;
+                font-weight: bold;
+            }
+
+            .email-footer {
+                background-color: #f9f9f9;
+                padding: 20px;
+                text-align: center;
+                font-size: 12px;
+                color: #666666;
+                border-top: 1px solid #dddddd;
+            }
+
+            .email-footer a {
+                color: #667eea;
+                text-decoration: none;
+            }
         </style>
     </head>
     <body>
@@ -143,16 +236,16 @@ function sjb_get_email_header() {
 }
 
 /**
- * Helper function to generate HTML email footer
+ * Email footer
  */
 function sjb_get_email_footer() {
     $site_name = get_bloginfo('name');
-    $site_url = get_home_url();
+    $site_url  = get_home_url();
 
     return '
             </div>
             <div class="email-footer">
-                <p>&copy; ' . date('Y') . ' ' . esc_html($site_name) . '. All rights reserved.</p>
+                <p>&copy; ' . esc_html(date('Y')) . ' ' . esc_html($site_name) . '. All rights reserved.</p>
                 <p><a href="' . esc_url($site_url) . '">Visit our website</a></p>
             </div>
         </div>
@@ -162,102 +255,136 @@ function sjb_get_email_footer() {
 }
 
 /**
- * Set emails to HTML content type
- */
-add_filter('wp_mail_content_type', function () {
-    return 'text/html';
-});
-
-/**
- * Customize the HR email body template
- * SJB exposes sjb_hr_email_template.
+ * HR email template
  */
 add_filter('sjb_hr_email_template', function ($message, $post_id, $notification_receiver) {
     $job_title = get_the_title($post_id);
-    $site_url = get_home_url();
 
-    // Get applicant name from post meta
-    $applicant_name = get_post_meta($post_id, 'applicant_name', true);
+    $applicant_name  = get_post_meta($post_id, 'jobapp_name', true);
+    $applicant_email = get_post_meta($post_id, 'jobapp_email', true);
+    $applicant_phone = get_post_meta($post_id, 'jobapp_phone', true);
+
     if (empty($applicant_name)) {
-        $applicant_name = 'N/A';
+        $applicant_name = get_post_meta($post_id, 'applicant_name', true);
     }
 
-    // Get the resume attachment
+    if (empty($applicant_email)) {
+        $applicant_email = get_post_meta($post_id, 'email', true);
+    }
+
+    if (empty($applicant_phone)) {
+        $applicant_phone = get_post_meta($post_id, 'phone', true);
+    }
+
+    $applicant_name  = !empty($applicant_name) ? $applicant_name : 'N/A';
+    $applicant_email = !empty($applicant_email) ? $applicant_email : 'N/A';
+    $applicant_phone = !empty($applicant_phone) ? $applicant_phone : 'N/A';
+
     $resume_url = '';
-    $resume_path = '';
-    $resume_file_name = '';
-    $attachments = get_posts(array(
-        'post_type' => 'attachment',
+
+    $attachments = get_posts([
+        'post_type'   => 'attachment',
         'post_parent' => $post_id,
         'numberposts' => 1,
-        'post_status' => 'inherit'
-    ));
+        'post_status' => 'inherit',
+    ]);
+
     if (!empty($attachments)) {
         $resume_url = wp_get_attachment_url($attachments[0]->ID);
-        $resume_path = get_attached_file($attachments[0]->ID);
-        $resume_file_name = basename($resume_path);
     }
-
 
     $custom_message  = sjb_get_email_header();
     $custom_message .= '<h2>New Job Application Received</h2>';
-    $custom_message .= '<p>A new application has been submitted on your website.</p>';
+    $custom_message .= '<p>A new candidate has submitted an application through the careers page.</p>';
+
     $custom_message .= '<div class="job-details">';
     $custom_message .= '<p><strong>Applicant Name:</strong> ' . esc_html($applicant_name) . '</p>';
+    $custom_message .= '<p><strong>Email:</strong> ' . esc_html($applicant_email) . '</p>';
+    $custom_message .= '<p><strong>Phone:</strong> ' . esc_html($applicant_phone) . '</p>';
     $custom_message .= '<p><strong>Job Title:</strong> ' . esc_html($job_title) . '</p>';
-    $custom_message .= '<p><strong>Application Date:</strong> ' . date('F j, Y \a\t g:i A') . '</p>';
+    $custom_message .= '<p><strong>Submitted On:</strong> ' . esc_html(current_time('F j, Y \a\t g:i A')) . '</p>';
+
     if (!empty($resume_url)) {
-        $custom_message .= '<p><strong>Resume:</strong> <a href="' . esc_url($resume_url) . '" target="_blank" style="color: #667eea; font-weight: bold;">📥 Download Resume</a></p>';
-        $custom_message .= '<p style="font-size: 12px; color: #666; margin-top: 5px;"><em>Resume is also attached to this email.</em></p>';
+        $custom_message .= '<p><strong>Resume:</strong> <a href="' . esc_url($resume_url) . '" target="_blank">Download Resume</a></p>';
+        $custom_message .= '<p><em>The resume is also attached to this email.</em></p>';
     } else {
-        $custom_message .= '<p><strong>Resume:</strong> <em>No resume attached</em></p>';
+        $custom_message .= '<p><strong>Resume:</strong> Not available</p>';
     }
+
     $custom_message .= '</div>';
-    $custom_message .= '<h2>Next Steps</h2>';
-    $custom_message .= '<p>Log in to WordPress to review the applicant\'s complete details:</p>';
-    $custom_message .= '<p><a href="' . esc_url(admin_url('post.php?post=' . intval($post_id) . '&action=edit')) . '" class="cta-button">Review Full Application</a></p>';
-    $custom_message .= '<p>You can view all applications and manage the hiring process from your WordPress dashboard.</p>';
+
+    $custom_message .= '<p><a href="' . esc_url(admin_url('post.php?post=' . intval($post_id) . '&action=edit')) . '" class="cta-button">Review Application</a></p>';
+
+    $custom_message .= '<p>Please log in to the WordPress dashboard to review the complete application details.</p>';
+
     $custom_message .= sjb_get_email_footer();
 
     return $custom_message;
-}, 10, 3);
+}, 999, 3);
 
 /**
- * Customize the applicant confirmation email
- * SJB exposes sjb_app_email_template for applicant emails.
+ * Applicant confirmation email template
+ * Correct hook for Simple Job Board 2.14.2:
+ * sjb_applicant_email_template
  */
-add_filter('sjb_app_email_template', function ($message, $post_id, $app_id) {
+add_filter('sjb_applicant_email_template', function ($message, $post_id, $notification_receiver) {
     $job_title = get_the_title($post_id);
-    $site_url = get_home_url();
     $site_name = get_bloginfo('name');
+    $site_url  = get_home_url();
+    $hr_email  = get_option('sjb_custom_hr_email', '');
+
+    $applicant_name = get_post_meta($post_id, 'jobapp_name', true);
+
+    if (empty($applicant_name)) {
+        $applicant_name = get_post_meta($post_id, 'applicant_name', true);
+    }
+
+    if (empty($applicant_name)) {
+        $applicant_name = 'Applicant';
+    }
 
     $custom_message  = sjb_get_email_header();
-    $custom_message .= '<h2>Application Received!</h2>';
-    $custom_message .= '<p>Thank you for your interest in the <strong>' . esc_html($job_title) . '</strong> position at ' . esc_html($site_name) . '.</p>';
+
+    $custom_message .= '<h2>Application Submitted Successfully</h2>';
+
+    $custom_message .= '<p>Dear ' . esc_html($applicant_name) . ',</p>';
+
+    $custom_message .= '<p>Thank you for applying for the <strong>' . esc_html($job_title) . '</strong> position at <strong>' . esc_html($site_name) . '</strong>.</p>';
+
     $custom_message .= '<div class="job-details">';
-    $custom_message .= '<p>We have successfully received your application. Our recruitment team will review your qualifications and get back to you soon.</p>';
+    $custom_message .= '<p>We have successfully received your application.</p>';
+    $custom_message .= '<p>Our hiring team will review your profile, experience, and submitted documents. If your qualifications match our requirements, we will contact you for the next step in the recruitment process.</p>';
     $custom_message .= '</div>';
-    $custom_message .= '<h2>What Happens Next?</h2>';
+
+    $custom_message .= '<h2>Application Summary</h2>';
+    $custom_message .= '<p><strong>Position Applied For:</strong> ' . esc_html($job_title) . '</p>';
+    $custom_message .= '<p><strong>Submitted On:</strong> ' . esc_html(current_time('F j, Y \a\t g:i A')) . '</p>';
+
+    $custom_message .= '<h2>Next Steps</h2>';
     $custom_message .= '<ul style="margin: 15px 0; padding-left: 20px;">';
-    $custom_message .= '<li>Our team will review your application</li>';
-    $custom_message .= '<li>Selected candidates will be contacted for an interview</li>';
-    $custom_message .= '<li>We will keep you updated throughout the process</li>';
+    $custom_message .= '<li>Your application will be reviewed by our hiring team.</li>';
+    $custom_message .= '<li>Shortlisted candidates will be contacted for further discussion or interview.</li>';
+    $custom_message .= '<li>No further action is required from your side at this moment.</li>';
     $custom_message .= '</ul>';
-    $custom_message .= '<h2>Explore More Opportunities</h2>';
-    $custom_message .= '<p>In the meantime, you can explore other job openings on our careers portal:</p>';
-    $custom_message .= '<p><a href="' . esc_url($site_url) . '/careers" class="cta-button">View More Jobs</a></p>';
-    $custom_message .= '<h2>Questions?</h2>';
-    $hr_email = get_option('sjb_custom_hr_email', '');
-    if (!empty($hr_email)) {
-        $custom_message .= '<p>If you have any questions about your application, feel free to reach out to our HR team at <a href="mailto:' . esc_attr($hr_email) . '">' . esc_html($hr_email) . '</a>.</p>';
+
+    if (!empty($hr_email) && is_email($hr_email)) {
+        $custom_message .= '<h2>Questions?</h2>';
+        $custom_message .= '<p>If you have any questions about your application, please contact our HR team at <a href="mailto:' . esc_attr($hr_email) . '">' . esc_html($hr_email) . '</a>.</p>';
     }
+
+    $custom_message .= '<p><a href="' . esc_url($site_url) . '" class="cta-button">Visit Our Website</a></p>';
+
+    $custom_message .= '<p>Thank you again for your interest in joining ' . esc_html($site_name) . '.</p>';
+
+    $custom_message .= '<p>Best regards,<br><strong>' . esc_html($site_name) . ' Hiring Team</strong></p>';
+
     $custom_message .= sjb_get_email_footer();
 
     return $custom_message;
-}, 10, 3);
+}, 999, 3);
 
 /**
- * Optional: log email failures for debugging
+ * Log email failures
  */
 add_action('wp_mail_failed', function ($error) {
     error_log('SJB Mail Failure: ' . $error->get_error_message());
