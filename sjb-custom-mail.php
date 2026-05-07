@@ -2,7 +2,7 @@
 /**
  * Plugin Name: SJB Custom Mail
  * Description: Custom HR and applicant email templates for Simple Job Board.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Author: Utsav
  */
 
@@ -165,7 +165,7 @@ function sjb_get_email_header() {
             }
 
             .email-header {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #FDB614 0%, #e6a100 100%);
                 color: #ffffff;
                 padding: 30px;
                 text-align: center;
@@ -188,7 +188,7 @@ function sjb_get_email_header() {
             }
 
             .email-body h2 {
-                color: #667eea;
+                color: #FDB614;
                 margin-top: 20px;
                 margin-bottom: 10px;
                 font-size: 20px;
@@ -202,7 +202,7 @@ function sjb_get_email_header() {
             .job-details {
                 background-color: #f8f9fa;
                 padding: 16px;
-                border-left: 4px solid #667eea;
+                border-left: 4px solid #FDB614;
                 margin: 20px 0;
             }
 
@@ -212,7 +212,7 @@ function sjb_get_email_header() {
 
             .cta-button {
                 display: inline-block;
-                background-color: #667eea;
+                background-color: #FDB614;
                 color: #ffffff !important;
                 padding: 12px 24px;
                 text-decoration: none;
@@ -231,7 +231,7 @@ function sjb_get_email_header() {
             }
 
             .email-footer a {
-                color: #667eea;
+                color: #FDB614;
                 text-decoration: none;
             }
         </style>
